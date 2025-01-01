@@ -39,13 +39,13 @@ def process_articles(articles):
 st.title("Investment Intelligence System")
 
 # Upload dataset
-uploaded_file = st.file_uploader("Upload a CSV file containing news articles", type="csv")
+uploaded_file = st.file_uploader("ft.lk", type="csv")
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     if "article" not in df.columns:
         st.error("The uploaded file must contain an 'article' column.")
     else:
-        articles = df["article"].dropna().tolist()
+        articles = df["Article Title"].dropna().tolist()
 
         # Process articles
         with st.spinner("Processing articles..."):
