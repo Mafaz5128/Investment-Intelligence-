@@ -3,12 +3,16 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 import os
+import torch
+import validators
+import math
 
-# Load the entailment model
-entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=0)
+# Device selection based on availability (GPU or CPU)
+device = 0 if torch.cuda.is_available() else -1
+entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=device)
 
 # List of companies and industries
-companies = ['Hemas', 'John Keells', 'Dialog','CSE']
+companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
 industries = [
     "Energy", "Materials", "Industrials", "Consumer Discretionary",
     "Consumer Staples", "Health Care", "Financials", "Information Technology",
@@ -17,6 +21,8 @@ industries = [
 
 # Function to classify content
 def classify_content(sentence, categories, hypothesis_template):
+    max_length = 512  # Truncate to model's token limit
+    sentence = sentence[:max_length]
     result = entailment_model(
         sequences=sentence,
         candidate_labels=categories,
@@ -25,93 +31,74 @@ def classify_content(sentence, categories, hypothesis_template):
     results = {label: score for label, score in zip(result["labels"], result["scores"])}
     return results
 
-# Scraping function for extracting articles from the website
+# Scraping function to extract articles from the website
 def crawl_website(base_url, start_page, end_page, step, output_dir):
     articles = []
     try:
-        # Ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
 
         for page_num in range(start_page, end_page, step):
-            page_url = f"{base_url}/{page_num}"  # Construct the page URL
-            print(f"Accessing: {page_url}")
-
+            page_url = f"{base_url}/{page_num}"
             try:
-                # Fetch website content
-                response = requests.get(page_url)
+                response = requests.get(page_url, timeout=10)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, 'html.parser')
 
-                # Find all article links within <div class="col-md-6 lineg">
+                # Extracting articles from specific div
                 article_divs = soup.find_all('div', class_='col-md-6 lineg')
-
                 for div in article_divs:
-                    link = div.find('a', href=True)  # Extract the anchor tag with href
+                    link = div.find('a', href=True)
                     if link:
                         article_url = link['href']
-                        # Ensure the URL is valid (absolute URL)
                         if not article_url.startswith("http"):
                             article_url = base_url + article_url
-
-                        # Access the article page to scrape content
                         try:
-                            article_response = requests.get(article_url)
+                            article_response = requests.get(article_url, timeout=10)
                             article_response.raise_for_status()
                             article_soup = BeautifulSoup(article_response.text, 'html.parser')
 
-                            # Extract the article title
+                            # Extracting article title and content
                             title = article_soup.find('h1').get_text(strip=True) if article_soup.find('h1') else "No Title"
-
-                            # Extract the article content (focus on <p> tags inside <header class="inner-content">)
                             content_div = article_soup.find('header', class_='inner-content')
-                            if content_div:
-                                paragraphs = content_div.find_all('p')
-                                content = "\n".join([p.get_text(strip=True) for p in paragraphs])
-                            else:
-                                content = "No content found."
-
-                            # Store article details
+                            content = "\n".join([p.get_text(strip=True) for p in content_div.find_all('p')]) if content_div else "No content found."
+                            
+                            # Storing article details
                             articles.append({'title': title, 'url': article_url, 'content': content})
-                            print(f"Scraped article: {title}")
-
-                        except requests.exceptions.RequestException as e:
-                            print(f"Error accessing article: {article_url}: {e}")
-
-            except requests.exceptions.RequestException as e:
-                print(f"Error accessing page URL {page_url}: {e}")
-
+                        except Exception as e:
+                            print(f"Error scraping article {article_url}: {e}")
+            except Exception as e:
+                print(f"Error accessing page {page_url}: {e}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred during scraping: {e}")
 
     return articles
 
 # Streamlit UI
 st.title("Investment Intelligence System")
 
-# Initialize global variable for storing articles
+# Initialize global variable for storing articles in session state
 if "scraped_articles" not in st.session_state:
     st.session_state["scraped_articles"] = []
 
-# Step 1: Scrape articles
-st.write("""
-    Paste the website URL from which you want to scrape news articles. The articles will be stored, and you can filter them by company or industry.
-""")
+# Step 1: Scrape articles from the URL
+st.write("""Paste the website URL from which you want to scrape news articles. The articles will be stored, and you can filter them by company or industry.""")
+
 base_url_input = st.text_input("Enter the website URL:")
 
 if st.button("Scrape Data"):
-    if base_url_input.strip() == "":
-        st.error("Please enter a website URL!")
+    if not validators.url(base_url_input):
+        st.error("Invalid URL. Please enter a valid website URL!")
     else:
         with st.spinner("Scraping website..."):
             articles = crawl_website(base_url_input, start_page=1, end_page=10, step=1, output_dir="scraped_data")
-            st.session_state["scraped_articles"] = articles  # Store scraped articles in session state
+            st.session_state["scraped_articles"] = articles  # Store articles in session state
 
         if articles:
             st.success(f"Scraped {len(articles)} articles!")
         else:
             st.warning("No articles found.")
 
-# Step 2: Filter articles
+# Step 2: Apply Filters
 if st.session_state["scraped_articles"]:
     st.write("## Filter Articles")
     classification_type = st.radio("Filter by:", ["Company", "Industry"])
@@ -125,23 +112,38 @@ if st.session_state["scraped_articles"]:
         categories = industries
         hypothesis_template = "This text is about the {} industry."
 
+    # Filtering functionality
     if st.button("Apply Filter"):
-        with st.spinner("Classifying articles..."):
-            categorized_articles = {category: [] for category in categories}
+        if f"classified_{selected_option}" not in st.session_state:
+            with st.spinner("Classifying articles..."):
+                categorized_articles = {category: [] for category in categories}
 
-            for article in st.session_state["scraped_articles"]:
-                detected_categories = classify_content(article['content'], categories, hypothesis_template)
-                for category, score in detected_categories.items():
-                    if score > 0.5:  # Threshold for "entailment"
-                        categorized_articles[category].append(article)
+                # Classifying articles
+                for article in st.session_state["scraped_articles"]:
+                    detected_categories = classify_content(article['content'], categories, hypothesis_template)
+                    for category, score in detected_categories.items():
+                        if score > 0.5:  # Threshold for "entailment"
+                            categorized_articles[category].append(article)
 
-        # Display results for the selected category
-        if categorized_articles[selected_option]:
-            st.subheader(f"News related to {selected_option}")
-            for article in categorized_articles[selected_option]:
+                st.session_state[f"classified_{selected_option}"] = categorized_articles[selected_option]
+        else:
+            categorized_articles = st.session_state[f"classified_{selected_option}"]
+
+        # Paginate results
+        if categorized_articles:
+            num_articles = len(categorized_articles)
+            articles_per_page = 5
+            num_pages = math.ceil(num_articles / articles_per_page)
+
+            page = st.number_input("Page", 1, num_pages, step=1)
+            start_idx = (page - 1) * articles_per_page
+            end_idx = start_idx + articles_per_page
+
+            for article in categorized_articles[start_idx:end_idx]:
                 st.write(f"**{article['title']}**")
                 st.write(f"[Read more]({article['url']})")
-                st.write(f"{article['content'][:500]}...")  # Show the first 500 chars
+                st.write(f"{article['content'][:500]}...")  # Show first 500 characters
+
         else:
             st.write(f"No news found for {selected_option}.")
 else:
