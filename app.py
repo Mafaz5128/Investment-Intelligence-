@@ -8,7 +8,7 @@ import os
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
 # List of companies and industries
-companies = ['Hemas', 'John Keells', 'Dialog']
+companies = ['Hemas', 'John Keells', 'Dialog','CSE']
 industries = [
     "Energy", "Materials", "Industrials", "Consumer Discretionary",
     "Consumer Staples", "Health Care", "Financials", "Information Technology",
