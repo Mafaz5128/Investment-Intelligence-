@@ -32,9 +32,6 @@ def crawl_website(base_url, start_page, end_page, step, output_dir):
         # Ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
 
-        # Extract the category name from the URL
-        category = base_url.split("/")[-2] if base_url.endswith("/") else base_url.split("/")[-1]
-
         for page_num in range(start_page, end_page, step):
             page_url = f"{base_url}/{page_num}"  # Construct the page URL
             print(f"Accessing: {page_url}")
@@ -91,53 +88,61 @@ def crawl_website(base_url, start_page, end_page, step, output_dir):
 # Streamlit UI
 st.title("Investment Intelligence System")
 
-# User choice: Classify by company or industry
-classification_type = st.sidebar.radio("Classify by:", ["Company", "Industry"])
+# Initialize global variable for storing articles
+if "scraped_articles" not in st.session_state:
+    st.session_state["scraped_articles"] = []
 
-# Sidebar selection based on classification type
-if classification_type == "Company":
-    selected_option = st.sidebar.selectbox("Select a company", companies)
-    categories = companies
-    hypothesis_template = "This text is about {}."
-else:
-    selected_option = st.sidebar.selectbox("Select an industry", industries)
-    categories = industries
-    hypothesis_template = "This text is about the {} industry."
-
+# Step 1: Scrape articles
 st.write("""
-    Paste the website URL from which you want to scrape news articles, and it will categorize the articles based on your selection.
+    Paste the website URL from which you want to scrape news articles. The articles will be stored, and you can filter them by company or industry.
 """)
-
-# Text input for website URL
 base_url_input = st.text_input("Enter the website URL:")
 
-# Button to trigger crawling and categorization
-if st.button("Scrape and Categorize"):
+if st.button("Scrape Data"):
     if base_url_input.strip() == "":
         st.error("Please enter a website URL!")
     else:
         with st.spinner("Scraping website..."):
             articles = crawl_website(base_url_input, start_page=1, end_page=10, step=1, output_dir="scraped_data")
+            st.session_state["scraped_articles"] = articles  # Store scraped articles in session state
 
-            if not articles:
-                st.write("No articles found.")
-            else:
-                categorized_articles = {category: [] for category in categories}
+        if articles:
+            st.success(f"Scraped {len(articles)} articles!")
+        else:
+            st.warning("No articles found.")
 
-                # Classify each article
-                for article in articles:
-                    detected_categories = classify_content(article['content'], categories, hypothesis_template)
+# Step 2: Filter articles
+if st.session_state["scraped_articles"]:
+    st.write("## Filter Articles")
+    classification_type = st.radio("Filter by:", ["Company", "Industry"])
 
-                    for category, score in detected_categories.items():
-                        if score > 0.5:  # Threshold for "entailment"
-                            categorized_articles[category].append(article)
+    if classification_type == "Company":
+        selected_option = st.selectbox("Select a company", companies)
+        categories = companies
+        hypothesis_template = "This text is about {}."
+    else:
+        selected_option = st.selectbox("Select an industry", industries)
+        categories = industries
+        hypothesis_template = "This text is about the {} industry."
 
-                # Display results for the selected category
-                if categorized_articles[selected_option]:
-                    st.subheader(f"News related to {selected_option}")
-                    for article in categorized_articles[selected_option]:
-                        st.write(f"**{article['title']}**")
-                        st.write(f"[Read more]({article['url']})")
-                        st.write(f"{article['content'][:500]}...")  # Show the first 500 chars
-                else:
-                    st.write(f"No news found for {selected_option}.")
+    if st.button("Apply Filter"):
+        with st.spinner("Classifying articles..."):
+            categorized_articles = {category: [] for category in categories}
+
+            for article in st.session_state["scraped_articles"]:
+                detected_categories = classify_content(article['content'], categories, hypothesis_template)
+                for category, score in detected_categories.items():
+                    if score > 0.5:  # Threshold for "entailment"
+                        categorized_articles[category].append(article)
+
+        # Display results for the selected category
+        if categorized_articles[selected_option]:
+            st.subheader(f"News related to {selected_option}")
+            for article in categorized_articles[selected_option]:
+                st.write(f"**{article['title']}**")
+                st.write(f"[Read more]({article['url']})")
+                st.write(f"{article['content'][:500]}...")  # Show the first 500 chars
+        else:
+            st.write(f"No news found for {selected_option}.")
+else:
+    st.info("No articles scraped yet. Please scrape data first.")
