@@ -5,7 +5,7 @@ from transformers import pipeline
 import os
 
 # Load the entailment model
-entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
+entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=0)
 
 # List of companies and industries
 companies = ['Hemas', 'John Keells', 'Dialog','CSE']
