@@ -7,7 +7,7 @@ import os
 # Load the entailment model
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
-# List of companies, industries, and news categories for classification
+# List of companies, industries, and news categories
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
 industries = [
     "Energy", "Materials", "Industrials", "Consumer Discretionary",
@@ -15,7 +15,7 @@ industries = [
     "Communication Services", "Utilities", "Real Estate"
 ]
 news_categories = [
-    "Politics", "Business", "Technology", "Science", "Health", "Sports", "Entertainment", "Economics"
+    "Politics", "Business", "Technology", "Health", "Entertainment", "Sports"
 ]
 
 # Function to classify content
@@ -97,9 +97,8 @@ if "scraped_articles" not in st.session_state:
     st.session_state["scraped_articles"] = []
 
 # Step 1: Scrape articles
-st.write("""
-    Paste the website URL from which you want to scrape news articles. The articles will be displayed first, and you can filter them by company, industry, or news category.
-""")
+st.write("""Paste the website URL from which you want to scrape news articles. The articles will be displayed first, and you can filter them by company, industry, or news category.""")
+
 base_url_input = st.text_input("Enter the website URL:")
 
 if st.button("Scrape Data"):
