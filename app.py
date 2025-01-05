@@ -26,6 +26,7 @@ def classify_content(sentence, categories, hypothesis_template):
     return results
 
 # Scraping function for extracting articles from the website
+# Scraping function for extracting articles from the website
 def crawl_website(base_url, start_page, end_page, step, output_dir):
     articles = []
     try:
@@ -33,7 +34,8 @@ def crawl_website(base_url, start_page, end_page, step, output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
         for page_num in range(start_page, end_page, step):
-            page_url = f"{base_url}/{page_num}"  # Construct the page URL
+            # Update the URL format as per your pattern (base_url + '44/{page_num}')
+            page_url = f"{base_url}/{44}/{page_num}"  # Adjust the URL structure based on your site
             print(f"Accessing: {page_url}")
 
             try:
@@ -103,7 +105,7 @@ if st.button("Scrape Data"):
         st.error("Please enter a website URL!")
     else:
         with st.spinner("Scraping website..."):
-            articles = crawl_website(base_url_input, start_page=1, end_page=10, step=1, output_dir="scraped_data")
+            articles = crawl_website(base_url_input, start_page=30, end_page=100, step=30, output_dir="scraped_data")
             st.session_state["scraped_articles"] = articles  # Store scraped articles in session state
 
         if articles:
