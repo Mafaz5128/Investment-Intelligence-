@@ -1,74 +1,65 @@
 import streamlit as st
-import pandas as pd
 from transformers import pipeline
-import re
 
-# Load NLP Pipelines
-@st.cache_resource
-def load_pipelines():
-    ner_pipeline = pipeline("ner", model="dbmdz/bert-large-cased-finetuned-conll03-english", grouped_entities=True)
-    zero_shot_pipeline = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-    return ner_pipeline, zero_shot_pipeline
+# Load the entailment model
+entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
-ner_pipeline, zero_shot_pipeline = load_pipelines()
+# List of companies
+companies = ['Hemas', 'John Keells', 'Dialog']
 
-# Define standard industry labels
-INDUSTRY_LABELS = ["Healthcare", "Technology", "Finance", "Energy", "Consumer Goods", "Real Estate", "Utilities", "Industrials", "Telecommunications"]
+# Function to classify companies using zero-shot classification
+def classify_companies(sentence, companies):
+    """
+    Perform zero-shot classification to detect which companies are mentioned.
 
-# Extract company names using NER
-def extract_companies(text, ner_model):
-    entities = ner_model(text)
-    companies = [ent['word'] for ent in entities if ent['entity_group'] == 'ORG']
-    return list(set(companies))
+    Args:
+        sentence (str): The input text to classify.
+        companies (list): List of company names to check.
 
-# Classify article by industry using zero-shot classification
-def classify_industry(text, zero_shot_model):
-    classification = zero_shot_model(text, candidate_labels=INDUSTRY_LABELS)
-    return classification['labels'][0]  # Top industry label
+    Returns:
+        dict: A dictionary mapping company names to entailment scores.
+    """
+    result = entailment_model(
+        sequences=sentence,
+        candidate_labels=companies,
+        hypothesis_template="This text is about {}."
+    )
+    results = {label: score for label, score in zip(result["labels"], result["scores"])}
+    return results
 
-# Process news articles
-def process_articles(articles):
-    processed_data = []
-    for article in articles:
-        companies = extract_companies(article, ner_pipeline)
-        industry = classify_industry(article, zero_shot_pipeline)
-        processed_data.append({"article": article, "companies": companies, "industry": industry})
-    return processed_data
+# Streamlit UI
+st.title("News Categorization by Companies")
 
-# Streamlit app
-st.title("Investment Intelligence System")
+st.write("""
+    Paste news articles (one per line) and categorize them based on the companies mentioned.
+""")
 
-# Upload dataset
-uploaded_file = st.file_uploader("ft.lk", type="csv")
-if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    if "article" not in df.columns:
-        st.error("The uploaded file must contain an 'article' column.")
+# Text input for articles
+text_input = st.text_area("Enter news articles here (one per line):")
+
+if st.button("Categorize"):
+    # Split input into individual sentences (articles)
+    text_dataset = text_input.split("\n")
+    
+    categorized_articles = {}
+
+    # Process each article
+    for sentence in text_dataset:
+        detected_companies = classify_companies(sentence, companies)
+
+        # Categorize articles based on companies
+        for company, score in detected_companies.items():
+            if score > 0.5:  # Threshold for "entailment"
+                if company not in categorized_articles:
+                    categorized_articles[company] = []
+                categorized_articles[company].append(sentence)
+
+    if categorized_articles:
+        st.subheader("Results")
+        for company, articles in categorized_articles.items():
+            st.write(f"### {company}")
+            for article in articles:
+                st.write(f"- {article}")
     else:
-        articles = df["Article Title"].dropna().tolist()
+        st.write("No companies found in the articles.")
 
-        # Process articles
-        with st.spinner("Processing articles..."):
-            results = process_articles(articles)
-
-        # Convert results to DataFrame
-        results_df = pd.DataFrame(results)
-
-        # Display filters
-        selected_company = st.selectbox("Filter by Company", ["All"] + list(set(sum(results_df["companies"].tolist(), []))))
-        selected_industry = st.selectbox("Filter by Industry", ["All"] + INDUSTRY_LABELS)
-
-        # Filter results
-        filtered_df = results_df.copy()
-        if selected_company != "All":
-            filtered_df = filtered_df[filtered_df["companies"].apply(lambda x: selected_company in x)]
-        if selected_industry != "All":
-            filtered_df = filtered_df[filtered_df["industry"] == selected_industry]
-
-        # Display results
-        st.subheader("Filtered News Articles")
-        for _, row in filtered_df.iterrows():
-            st.write(f"**Article:** {row['article']}")
-            st.write(f"- **Companies:** {', '.join(row['companies'])}")
-            st.write(f"- **Industry:** {row['industry']}")
-            st.markdown("---")
