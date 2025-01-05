@@ -94,7 +94,7 @@ if "scraped_articles" not in st.session_state:
 
 # Step 1: Scrape articles
 st.write("""
-    Paste the website URL from which you want to scrape news articles. The articles will be stored, and you can filter them by company or industry.
+    Paste the website URL from which you want to scrape news articles. The articles will be displayed first, and you can filter them by company or industry.
 """)
 base_url_input = st.text_input("Enter the website URL:")
 
@@ -111,7 +111,17 @@ if st.button("Scrape Data"):
         else:
             st.warning("No articles found.")
 
-# Step 2: Filter articles
+# Step 2: Display scraped articles
+if st.session_state["scraped_articles"]:
+    st.write("## Scraped Articles")
+    for article in st.session_state["scraped_articles"]:
+        st.write(f"### {article['title']}")
+        st.write(f"[Read more]({article['url']})")
+        st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
+else:
+    st.info("No articles scraped yet. Please scrape data first.")
+
+# Step 3: Filter articles
 if st.session_state["scraped_articles"]:
     st.write("## Filter Articles")
     classification_type = st.radio("Filter by:", ["Company", "Industry"])
@@ -141,8 +151,6 @@ if st.session_state["scraped_articles"]:
             for article in categorized_articles[selected_option]:
                 st.write(f"**{article['title']}**")
                 st.write(f"[Read more]({article['url']})")
-                st.write(f"{article['content'][:500]}...")  # Show the first 500 chars
+                st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
         else:
             st.write(f"No news found for {selected_option}.")
-else:
-    st.info("No articles scraped yet. Please scrape data first.")
