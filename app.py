@@ -3,12 +3,16 @@ import requests
 from bs4 import BeautifulSoup
 from transformers import pipeline
 import os
+from transformers import AutoTokenizer, AutoModelForTokenClassification
+from transformers import pipeline
+
+tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
+model = AutoModelForTokenClassification.from_pretrained("xlm-roberta-large-finetuned-conll03-english")
+ner_pipe = pipeline("ner", model=model, tokenizer=tokenizer)
 
 # Load the entailment model
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
-# Load the token classification model for NER (Named Entity Recognition)
-ner_pipe = pipeline("token-classification", model="facebook/xlm-roberta-large-finetuned-conll03-english", device=-1)
 
 # List of companies, industries, and news categories
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
