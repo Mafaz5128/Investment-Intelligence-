@@ -7,12 +7,15 @@ import os
 # Load the entailment model
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
-# List of companies and industries
+# List of companies, industries, and news categories for classification
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
 industries = [
     "Energy", "Materials", "Industrials", "Consumer Discretionary",
     "Consumer Staples", "Health Care", "Financials", "Information Technology",
     "Communication Services", "Utilities", "Real Estate"
+]
+news_categories = [
+    "Politics", "Business", "Technology", "Science", "Health", "Sports", "Entertainment", "Economics"
 ]
 
 # Function to classify content
@@ -25,7 +28,6 @@ def classify_content(sentence, categories, hypothesis_template):
     results = {label: score for label, score in zip(result["labels"], result["scores"])}
     return results
 
-# Scraping function for extracting articles from the website
 # Scraping function for extracting articles from the website
 def crawl_website(base_url, start_page, end_page, step, output_dir):
     articles = []
@@ -96,7 +98,7 @@ if "scraped_articles" not in st.session_state:
 
 # Step 1: Scrape articles
 st.write("""
-    Paste the website URL from which you want to scrape news articles. The articles will be displayed first, and you can filter them by company or industry.
+    Paste the website URL from which you want to scrape news articles. The articles will be displayed first, and you can filter them by company, industry, or news category.
 """)
 base_url_input = st.text_input("Enter the website URL:")
 
@@ -124,8 +126,11 @@ if st.session_state["scraped_articles"]:
     st.sidebar.subheader("Filter by Industry")
     industry_selected = [industry for industry in industries if st.sidebar.checkbox(industry, value=False)]
 
-    # Combine the selected companies and industries
-    selected_options = company_selected + industry_selected
+    st.sidebar.subheader("Filter by News Classification")
+    news_selected = [category for category in news_categories if st.sidebar.checkbox(category, value=False)]
+
+    # Combine the selected companies, industries, and news categories
+    selected_options = company_selected + industry_selected + news_selected
     hypothesis_template = "This text is about {}."
 
     # Show all articles if no filter is selected, otherwise show filtered articles
