@@ -8,7 +8,7 @@ import os
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
 # List of companies and industries
-companies = ['Hemas', 'John Keells', 'Dialog','CSE']
+companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
 industries = [
     "Energy", "Materials", "Industrials", "Consumer Discretionary",
     "Consumer Staples", "Health Care", "Financials", "Information Technology",
@@ -111,17 +111,7 @@ if st.button("Scrape Data"):
         else:
             st.warning("No articles found.")
 
-# Step 2: Display scraped articles
-if st.session_state["scraped_articles"]:
-    st.write("## Scraped Articles")
-    for article in st.session_state["scraped_articles"]:
-        st.write(f"### {article['title']}")
-        st.write(f"[Read more]({article['url']})")
-        st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
-else:
-    st.info("No articles scraped yet. Please scrape data first.")
-
-# Step 3: Filter articles with checkboxes
+# Step 2: Filter articles with checkboxes
 if st.session_state["scraped_articles"]:
     st.write("## Filter Articles")
 
@@ -136,28 +126,25 @@ if st.session_state["scraped_articles"]:
     selected_options = company_selected + industry_selected
     hypothesis_template = "This text is about {}."
 
-    if st.button("Apply Filter"):
-        with st.spinner("Classifying articles..."):
-            categorized_articles = {category: [] for category in selected_options}
+    # Show all articles if no filter is selected, otherwise show filtered articles
+    filtered_articles = []
 
-            # Now use article title for classification instead of the full content
+    if selected_options:
+        with st.spinner("Classifying articles..."):
             for article in st.session_state["scraped_articles"]:
                 detected_categories = classify_content(article['title'], selected_options, hypothesis_template)
                 for category, score in detected_categories.items():
                     if score > 0.5:  # Threshold for "entailment"
-                        categorized_articles[category].append(article)
+                        filtered_articles.append(article)
+                        break  # No need to check further categories for this article
+    else:
+        filtered_articles = st.session_state["scraped_articles"]  # Show all articles if no filter is selected
 
-        # Display filtered results
-        if selected_options:
-            st.subheader(f"News related to selected filters")
-            for category in selected_options:
-                if categorized_articles[category]:
-                    st.write(f"### {category}")
-                    for article in categorized_articles[category]:
-                        st.write(f"**{article['title']}**")
-                        st.write(f"[Read more]({article['url']})")
-                        st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
-                else:
-                    st.write(f"No news found for {category}.")
-        else:
-            st.write("No filter selected.")
+    # Display filtered results
+    st.write("### Filtered Articles:")
+    for article in filtered_articles:
+        st.write(f"**{article['title']}**")
+        st.write(f"[Read more]({article['url']})")
+        st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
+else:
+    st.info("No articles scraped yet. Please scrape data first.")
