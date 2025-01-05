@@ -7,6 +7,9 @@ import os
 # Load the entailment model
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
+# Load the token classification model for NER (Named Entity Recognition)
+ner_pipe = pipeline("token-classification", model="facebook/xlm-roberta-large-finetuned-conll03-english", device=-1)
+
 # List of companies, industries, and news categories
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
 industries = [
@@ -27,6 +30,19 @@ def classify_content(sentence, categories, hypothesis_template):
     )
     results = {label: score for label, score in zip(result["labels"], result["scores"])}
     return results
+
+# Function to highlight entities in the text
+def highlight_org_entities(title):
+    ner_results = ner_pipe(title)  # Get NER results
+    highlighted_title = title
+
+    # Loop through the NER results and highlight organizations (ORG)
+    for entity in ner_results:
+        if entity['entity'] == 'B-ORG' or entity['entity'] == 'I-ORG':  # Organization entities
+            # Replace organization entities in the title with highlighted version
+            highlighted_title = highlighted_title.replace(entity['word'], f"<b>{entity['word']}</b>")
+
+    return highlighted_title
 
 # Scraping function for extracting articles from the website
 def crawl_website(base_url, start_page, end_page, step, output_dir):
@@ -74,8 +90,11 @@ def crawl_website(base_url, start_page, end_page, step, output_dir):
                             else:
                                 content = "No content found."
 
+                            # Highlight ORG entities in the title
+                            highlighted_title = highlight_org_entities(title)
+
                             # Store article details
-                            articles.append({'title': title, 'url': article_url, 'content': content})
+                            articles.append({'title': highlighted_title, 'url': article_url, 'content': content})
                             print(f"Scraped article: {title}")
 
                         except requests.exceptions.RequestException as e:
