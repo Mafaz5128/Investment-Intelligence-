@@ -29,7 +29,7 @@ industries = [
 def classify_content(sentence, categories, hypothesis_template):
     max_length = 512  # Truncate to model's token limit
     sentence = sentence[:max_length]
-    
+
     # Prepare the inputs for the model
     encoded_inputs = tokenizer(
         sentence, 
@@ -49,15 +49,20 @@ def classify_content(sentence, categories, hypothesis_template):
         max_length=max_length
     ).to(device)
 
-    # Perform zero-shot classification
-    result = model(
-        input_ids=encoded_inputs["input_ids"], 
-        attention_mask=encoded_inputs["attention_mask"], 
-        labels=encoded_hypotheses["input_ids"]
-    )
+    # Perform zero-shot classification using the model's forward method
+    with torch.no_grad():  # Disable gradient computation for inference
+        outputs = model(
+            input_ids=encoded_inputs["input_ids"], 
+            attention_mask=encoded_inputs["attention_mask"], 
+            decoder_input_ids=encoded_hypotheses["input_ids"]
+        )
 
-    results = {label: score for label, score in zip(categories, result.logits.squeeze().tolist())}
+    # Extract the logits (scores) and convert them to a dictionary with category labels
+    logits = outputs.logits.squeeze().cpu().numpy()
+    results = {label: score for label, score in zip(categories, logits)}
+
     return results
+
 # Scraping function to extract articles from the website
 def crawl_website(base_url, start_page, end_page, step, output_dir):
     articles = []
