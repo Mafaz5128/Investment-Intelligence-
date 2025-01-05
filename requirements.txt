@@ -4,5 +4,4 @@ beautifulsoup4
 transformers
 torch
 validators
-torchvision
-torchaudio
+math
