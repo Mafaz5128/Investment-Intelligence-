@@ -12,8 +12,10 @@ tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-mnli")
 model = AutoModelForSequenceClassification.from_pretrained("facebook/bart-large-mnli")
 
 # Device selection based on availability (GPU or CPU)
-device = 0 if torch.cuda.is_available() else -1
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
+
 
 # List of companies and industries
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
