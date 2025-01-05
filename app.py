@@ -140,8 +140,9 @@ if st.session_state["scraped_articles"]:
         with st.spinner("Classifying articles..."):
             categorized_articles = {category: [] for category in selected_options}
 
+            # Now use article title for classification instead of the full content
             for article in st.session_state["scraped_articles"]:
-                detected_categories = classify_content(article['content'], selected_options, hypothesis_template)
+                detected_categories = classify_content(article['title'], selected_options, hypothesis_template)
                 for category, score in detected_categories.items():
                     if score > 0.5:  # Threshold for "entailment"
                         categorized_articles[category].append(article)
