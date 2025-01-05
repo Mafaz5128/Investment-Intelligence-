@@ -37,29 +37,36 @@ st.write("""
 # Text input for articles
 text_input = st.text_area("Enter news articles here (one per line):")
 
+# Button to trigger categorization
 if st.button("Categorize"):
-    # Split input into individual sentences (articles)
-    text_dataset = text_input.split("\n")
-    
-    categorized_articles = {}
-
-    # Process each article
-    for sentence in text_dataset:
-        detected_companies = classify_companies(sentence, companies)
-
-        # Categorize articles based on companies
-        for company, score in detected_companies.items():
-            if score > 0.5:  # Threshold for "entailment"
-                if company not in categorized_articles:
-                    categorized_articles[company] = []
-                categorized_articles[company].append(sentence)
-
-    if categorized_articles:
-        st.subheader("Results")
-        for company, articles in categorized_articles.items():
-            st.write(f"### {company}")
-            for article in articles:
-                st.write(f"- {article}")
+    # Check if there is any input
+    if text_input.strip() == "":
+        st.error("Please enter some articles!")
     else:
-        st.write("No companies found in the articles.")
+        # Split input into individual sentences (articles) and clean the text
+        text_dataset = [sentence.strip() for sentence in text_input.split("\n") if sentence.strip()]
 
+        # Initialize dictionary for categorized articles
+        categorized_articles = {}
+
+        # Process each article
+        with st.spinner("Categorizing articles..."):
+            for sentence in text_dataset:
+                detected_companies = classify_companies(sentence, companies)
+
+                # Categorize articles based on companies
+                for company, score in detected_companies.items():
+                    if score > 0.5:  # Threshold for "entailment"
+                        if company not in categorized_articles:
+                            categorized_articles[company] = []
+                        categorized_articles[company].append(sentence)
+
+        # Display results
+        if categorized_articles:
+            st.subheader("Results")
+            for company, articles in categorized_articles.items():
+                st.write(f"### {company}")
+                for article in articles:
+                    st.write(f"- {article}")
+        else:
+            st.write("No companies found in the articles.")
