@@ -9,16 +9,6 @@ companies = ['Hemas', 'John Keells', 'Dialog']
 
 # Function to classify companies using zero-shot classification
 def classify_companies(sentence, companies):
-    """
-    Perform zero-shot classification to detect which companies are mentioned.
-
-    Args:
-        sentence (str): The input text to classify.
-        companies (list): List of company names to check.
-
-    Returns:
-        dict: A dictionary mapping company names to entailment scores.
-    """
     result = entailment_model(
         sequences=sentence,
         candidate_labels=companies,
@@ -28,7 +18,10 @@ def classify_companies(sentence, companies):
     return results
 
 # Streamlit UI
-st.title("News Categorization by Companies")
+st.title("Investment Intelligence System")
+
+# Sidebar for selecting company
+selected_company = st.sidebar.selectbox("Select a company", companies)
 
 st.write("""
     Paste news articles (one per line) and categorize them based on the companies mentioned.
@@ -39,7 +32,6 @@ text_input = st.text_area("Enter news articles here (one per line):")
 
 # Button to trigger categorization
 if st.button("Categorize"):
-    # Check if there is any input
     if text_input.strip() == "":
         st.error("Please enter some articles!")
     else:
@@ -61,12 +53,10 @@ if st.button("Categorize"):
                             categorized_articles[company] = []
                         categorized_articles[company].append(sentence)
 
-        # Display results
-        if categorized_articles:
-            st.subheader("Results")
-            for company, articles in categorized_articles.items():
-                st.write(f"### {company}")
-                for article in articles:
-                    st.write(f"- {article}")
+        # Display results for the selected company
+        if selected_company in categorized_articles:
+            st.subheader(f"News related to {selected_company}")
+            for article in categorized_articles[selected_company]:
+                st.write(f"- {article}")
         else:
-            st.write("No companies found in the articles.")
+            st.write(f"No news found for {selected_company}.")
