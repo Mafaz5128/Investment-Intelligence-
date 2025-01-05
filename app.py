@@ -4,9 +4,8 @@ from bs4 import BeautifulSoup
 from transformers import pipeline
 import os
 
-# Load the entailment model and summarization pipeline
+# Load the entailment model
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
-summarization_pipe = pipeline("summarization", model="facebook/bart-large-cnn")
 
 # List of companies and industries
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
@@ -147,12 +146,5 @@ if st.session_state["scraped_articles"]:
         st.write(f"**{article['title']}**")
         st.write(f"[Read more]({article['url']})")
         st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
-
-        # Add the "Summarize" button for each article
-        if st.button(f"Summarize: {article['title']}"):
-            with st.spinner(f"Summarizing {article['title']}..."):
-                summary = summarization_pipe(article['content'], max_length=200, min_length=50, do_sample=False)
-                st.write("**Summary:**")
-                st.write(summary[0]['summary_text'])
 else:
     st.info("No articles scraped yet. Please scrape data first.")
