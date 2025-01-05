@@ -29,20 +29,35 @@ industries = [
 def classify_content(sentence, categories, hypothesis_template):
     max_length = 512  # Truncate to model's token limit
     sentence = sentence[:max_length]
-    inputs = tokenizer([sentence] * len(categories), padding=True, truncation=True, return_tensors="pt").to(device)
-    labels = tokenizer(candidates=categories, padding=True, truncation=True, return_tensors="pt").to(device)
     
-    # Model inference
-    with torch.no_grad():
-        logits = model(**inputs).logits
+    # Prepare the inputs for the model
+    encoded_inputs = tokenizer(
+        sentence, 
+        padding=True, 
+        truncation=True, 
+        return_tensors="pt", 
+        max_length=max_length
+    ).to(device)
 
-    # Apply softmax to the logits to get probabilities
-    probabilities = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()
+    # Create a list of hypotheses (e.g., "This text is about [category]")
+    hypotheses = [hypothesis_template.format(category) for category in categories]
+    encoded_hypotheses = tokenizer(
+        hypotheses, 
+        padding=True, 
+        truncation=True, 
+        return_tensors="pt", 
+        max_length=max_length
+    ).to(device)
 
-    # Prepare results as a dictionary of categories and their scores
-    results = {category: prob for category, prob in zip(categories, probabilities[0])}
+    # Perform zero-shot classification
+    result = model(
+        input_ids=encoded_inputs["input_ids"], 
+        attention_mask=encoded_inputs["attention_mask"], 
+        labels=encoded_hypotheses["input_ids"]
+    )
+
+    results = {label: score for label, score in zip(categories, result.logits.squeeze().tolist())}
     return results
-
 # Scraping function to extract articles from the website
 def crawl_website(base_url, start_page, end_page, step, output_dir):
     articles = []
