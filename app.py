@@ -1,15 +1,19 @@
 import streamlit as st
 import requests
 from bs4 import BeautifulSoup
-from transformers import pipeline
-import os
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
+import os
 import validators
 import math
 
+# Load the model and tokenizer directly
+tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-mnli")
+model = AutoModelForSequenceClassification.from_pretrained("facebook/bart-large-mnli")
+
 # Device selection based on availability (GPU or CPU)
 device = 0 if torch.cuda.is_available() else -1
-entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=device)
+model = model.to(device)
 
 # List of companies and industries
 companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
@@ -23,12 +27,18 @@ industries = [
 def classify_content(sentence, categories, hypothesis_template):
     max_length = 512  # Truncate to model's token limit
     sentence = sentence[:max_length]
-    result = entailment_model(
-        sequences=sentence,
-        candidate_labels=categories,
-        hypothesis_template=hypothesis_template
-    )
-    results = {label: score for label, score in zip(result["labels"], result["scores"])}
+    inputs = tokenizer([sentence] * len(categories), padding=True, truncation=True, return_tensors="pt").to(device)
+    labels = tokenizer(candidates=categories, padding=True, truncation=True, return_tensors="pt").to(device)
+    
+    # Model inference
+    with torch.no_grad():
+        logits = model(**inputs).logits
+
+    # Apply softmax to the logits to get probabilities
+    probabilities = torch.nn.functional.softmax(logits, dim=-1).cpu().numpy()
+
+    # Prepare results as a dictionary of categories and their scores
+    results = {category: prob for category, prob in zip(categories, probabilities[0])}
     return results
 
 # Scraping function to extract articles from the website
