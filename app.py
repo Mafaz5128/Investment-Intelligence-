@@ -121,36 +121,42 @@ if st.session_state["scraped_articles"]:
 else:
     st.info("No articles scraped yet. Please scrape data first.")
 
-# Step 3: Filter articles
+# Step 3: Filter articles with checkboxes
 if st.session_state["scraped_articles"]:
     st.write("## Filter Articles")
-    classification_type = st.radio("Filter by:", ["Company", "Industry"])
 
-    if classification_type == "Company":
-        selected_option = st.selectbox("Select a company", companies)
-        categories = companies
-        hypothesis_template = "This text is about {}."
-    else:
-        selected_option = st.selectbox("Select an industry", industries)
-        categories = industries
-        hypothesis_template = "This text is about the {} industry."
+    # Create a sidebar with checkboxes for Companies and Industries
+    st.sidebar.subheader("Filter by Company")
+    company_selected = [company for company in companies if st.sidebar.checkbox(company, value=False)]
+
+    st.sidebar.subheader("Filter by Industry")
+    industry_selected = [industry for industry in industries if st.sidebar.checkbox(industry, value=False)]
+
+    # Combine the selected companies and industries
+    selected_options = company_selected + industry_selected
+    hypothesis_template = "This text is about {}."
 
     if st.button("Apply Filter"):
         with st.spinner("Classifying articles..."):
-            categorized_articles = {category: [] for category in categories}
+            categorized_articles = {category: [] for category in selected_options}
 
             for article in st.session_state["scraped_articles"]:
-                detected_categories = classify_content(article['content'], categories, hypothesis_template)
+                detected_categories = classify_content(article['content'], selected_options, hypothesis_template)
                 for category, score in detected_categories.items():
                     if score > 0.5:  # Threshold for "entailment"
                         categorized_articles[category].append(article)
 
-        # Display results for the selected category
-        if categorized_articles[selected_option]:
-            st.subheader(f"News related to {selected_option}")
-            for article in categorized_articles[selected_option]:
-                st.write(f"**{article['title']}**")
-                st.write(f"[Read more]({article['url']})")
-                st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
+        # Display filtered results
+        if selected_options:
+            st.subheader(f"News related to selected filters")
+            for category in selected_options:
+                if categorized_articles[category]:
+                    st.write(f"### {category}")
+                    for article in categorized_articles[category]:
+                        st.write(f"**{article['title']}**")
+                        st.write(f"[Read more]({article['url']})")
+                        st.write(f"{article['content'][:300]}...")  # Show the first 300 characters
+                else:
+                    st.write(f"No news found for {category}.")
         else:
-            st.write(f"No news found for {selected_option}.")
+            st.write("No filter selected.")
