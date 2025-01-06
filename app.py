@@ -23,12 +23,15 @@ def extract_organizations(title):
         return []
 
 # Function to highlight organizations in the title
+# Function to highlight organizations in the title with blue color
 def highlight_org_entities(title):
     orgs = extract_organizations(title)  # Get organizations from the title
     highlighted_title = title
     for org in orgs:
-        highlighted_title = highlighted_title.replace(org, f"<b>{org}</b>")  # Highlight orgs in title
+        # Highlight orgs in title with a blue color using inline style
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
+
 
 # Load the entailment model for news category classification
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
