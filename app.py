@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 import os
 import streamlit as st
-from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
+from transformers import pipeline
+from collections import Counter
 
 # Hugging Face API URL and headers for NER
 API_URL = "https://api-inference.huggingface.co/models/FacebookAI/xlm-roberta-large-finetuned-conll03-english"
@@ -22,9 +23,6 @@ def extract_organizations(title):
     else:
         return []
 
-# Function to highlight organizations in the title
-# Function to highlight organizations in the title with blue color
-# Function to highlight organizations in the title with blue color
 # Function to highlight organizations in the title with blue color
 def highlight_org_entities(title):
     orgs = extract_organizations(title)  # Get organizations from the title
@@ -33,11 +31,6 @@ def highlight_org_entities(title):
         # Highlight orgs in title with a blue color using inline style
         highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
-
-
-
-
-
 
 # Load the entailment model for news category classification
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
@@ -65,6 +58,7 @@ def classify_content(sentence, categories, hypothesis_template):
 # Function to scrape articles from the website
 def crawl_website(base_url, start_page, end_page, step):
     articles = []
+    org_counter = Counter()  # Track frequency of organizations
     try:
         for page_num in range(start_page, end_page, step):
             page_url = f"{base_url}/{page_num}"
@@ -89,21 +83,26 @@ def crawl_website(base_url, start_page, end_page, step):
                     content_div = article_soup.find('header', class_='inner-content')
                     content = "\n".join([p.get_text(strip=True) for p in content_div.find_all('p')]) if content_div else "No content found."
 
+                    # Extract organizations and update the counter
+                    orgs = extract_organizations(title)
+                    org_counter.update(orgs)
+
                     highlighted_title = highlight_org_entities(title)  # Use the new approach for highlighting orgs
                     articles.append({'title': highlighted_title, 'url': article_url, 'content': content})
 
     except Exception as e:
         print(f"Error: {e}")
 
-    return articles
+    return articles, org_counter
 
-# Streamlit UI
 # Streamlit UI
 st.title("Investment Intelligence System")
 
-# Initialize session state to store articles
+# Initialize session state to store articles and organization counts
 if "scraped_articles" not in st.session_state:
     st.session_state["scraped_articles"] = []
+if "org_counter" not in st.session_state:
+    st.session_state["org_counter"] = Counter()
 
 # Step 1: Scrape Articles
 base_url_input = st.text_input("Enter the website URL:")
@@ -112,8 +111,9 @@ if st.button("Scrape Data"):
         st.error("Please enter a website URL!")
     else:
         with st.spinner("Scraping website..."):
-            articles = crawl_website(base_url_input, start_page=30, end_page=100, step=30)
+            articles, org_counter = crawl_website(base_url_input, start_page=30, end_page=100, step=30)
             st.session_state["scraped_articles"] = articles
+            st.session_state["org_counter"] = org_counter
         st.success(f"Scraped {len(articles)} articles!") if articles else st.warning("No articles found.")
 
 # Step 2: Filter Articles
@@ -153,6 +153,12 @@ if st.session_state["scraped_articles"]:
         st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)  # Highlighted titles with HTML
         st.write(f"[Read more]({article['url']})")
         st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+    # Display trending organizations on the right side (sidebar)
+    st.sidebar.write("## Trending Organizations")
+    trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]  # Get the top 10 organizations without counts
+    for org in trending_orgs:
+        st.sidebar.write(org)
 
 else:
     st.info("No articles scraped yet. Please scrape data first.")
