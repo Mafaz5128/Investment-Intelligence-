@@ -59,7 +59,7 @@ def crawl_website(base_url, start_page, end_page, step):
     org_counter = Counter()  # Track frequency of organizations
     try:
         for page_num in range(start_page, end_page, step):
-            page_url = f"{base_url}/{page_num}"
+            page_url = f"{base_url}/44/{page_num}"
             response = requests.get(page_url)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
