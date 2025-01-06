@@ -25,13 +25,18 @@ def extract_organizations(title):
 # Function to highlight organizations in the title
 # Function to highlight organizations in the title with blue color
 # Function to highlight organizations in the title with blue color
+# Function to highlight organizations in the title with blue color
 def highlight_org_entities(title):
     orgs = extract_organizations(title)  # Get organizations from the title
     highlighted_title = title
     for org in orgs:
         # Highlight orgs in title with a blue color using inline style
-        highlighted_title = highlighted_title.replace(org, f'<span style="color:blue">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
+
+# When displaying the article titles in Streamlit, use st.markdown with unsafe_allow_html=True
+st.markdown(f"**{article['title']}**", unsafe_allow_html=True)  # This allows HTML rendering
+
 
 
 
@@ -94,6 +99,7 @@ def crawl_website(base_url, start_page, end_page, step):
     return articles
 
 # Streamlit UI
+# Streamlit UI
 st.title("Investment Intelligence System")
 
 # Initialize session state to store articles
@@ -144,7 +150,8 @@ if st.session_state["scraped_articles"]:
     # Display filtered articles
     st.write("### Filtered Articles:")
     for article in filtered_articles:
-        st.markdown(f"**{article['title']}**")  # Highlighted titles
+        # Display title with HTML tags rendered
+        st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)  # Highlighted titles with HTML
         st.write(f"[Read more]({article['url']})")
         st.write(f"{article['content'][:300]}...")  # Show first 300 characters
 
