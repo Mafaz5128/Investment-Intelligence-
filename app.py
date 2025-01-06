@@ -105,6 +105,10 @@ if "scraped_articles" not in st.session_state:
 if "org_counter" not in st.session_state:
     st.session_state["org_counter"] = Counter()
 
+# Initialize session state to track the view mode
+if "view_mode" not in st.session_state:
+    st.session_state["view_mode"] = "all"  # By default show all articles
+
 # Step 1: Scrape Articles
 base_url_input = st.text_input("Enter the website URL:")
 if st.button("Scrape Data"):
@@ -162,12 +166,30 @@ if st.session_state["scraped_articles"]:
     st.sidebar.write("## Trending Organizations")
     trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]  # Get the top 10 organizations without counts
     
-    # Display each trending organization as a button
+    # Handle showing only related articles when a button is clicked
     for org in trending_orgs:
         if st.sidebar.button(org):  # Create a button for each organization
-            # Filter articles that contain the clicked organization
-            filtered_by_org = [article for article in filtered_articles if org in article['title'] or org in article['content']]
+            st.session_state["view_mode"] = org  # Change the view mode to show only this organization's articles
             st.write(f"### Articles related to {org}:")
+            filtered_by_org = [article for article in filtered_articles if org in article['title'] or org in article['content']]
+            for article in filtered_by_org:
+                st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+                st.write(f"[Read more]({article['url']})")
+                st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+    # If no organization is selected, show all articles
+    if st.session_state["view_mode"] == "all":
+        st.write("### All Filtered Articles:")
+        for article in filtered_articles:
+            st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+            st.write(f"[Read more]({article['url']})")
+            st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+    elif st.session_state["view_mode"] != "all":
+        # Display the current organization related articles if in organization-specific view mode
+        if st.session_state["view_mode"]:
+            org = st.session_state["view_mode"]
+            filtered_by_org = [article for article in filtered_articles if org in article['title'] or org in article['content']]
             for article in filtered_by_org:
                 st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
                 st.write(f"[Read more]({article['url']})")
