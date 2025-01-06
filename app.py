@@ -221,26 +221,11 @@ if st.session_state["scraped_articles"]:
             # Display articles related to the selected organization
             st.write(f"### Articles related to {org}:")
             for article in filtered_by_org:
-                summary = summarize_article(article['content'])
                 st.markdown(f"""
                     <div class="article">
                         <h3>{highlight_org_entities(article['title'])}</h3>
-                        <p>{summary}</p>
+                        <p>{article['content'][:150]}...</p>
                         <a href="{article['url']}" target="_blank">Read More</a>
+                        <button onclick="alert('Summary: {summarize_article(article['content'])}')">Summary</button>
                     </div>
                 """, unsafe_allow_html=True)
-    
-    # Filtered Articles Display
-    if filtered_articles:
-        st.write("### Filtered Articles:")
-        for article in filtered_articles:
-            summary = summarize_article(article['content'])
-            st.markdown(f"""
-                <div class="article">
-                    <h3>{highlight_org_entities(article['title'])}</h3>
-                    <p>{summary}</p>
-                    <a href="{article['url']}" target="_blank">Read More</a>
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.write("No articles found matching your filters.")
