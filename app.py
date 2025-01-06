@@ -159,6 +159,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Streamlit UI
+# Streamlit UI
 st.title("Investment Intelligence System")
 
 # Initialize session state
@@ -182,25 +183,26 @@ if st.button("Scrape Data"):
         else:
             st.warning("No articles found.")
 
-# Filters Section with Left and Right Columns
+# Filters Section
 if st.session_state["scraped_articles"]:
     st.write("## Filter Articles")
 
-    left_col, right_col = st.columns(2)
-    with left_col:
+    # Vertical Navigation Bar for Companies and Industries
+    with st.sidebar:
         st.write("### Companies")
         company_selected = [company for company in companies if st.checkbox(company, key=f"company_{company}")]
-    
-    with right_col:
+
         st.write("### Industries")
         industry_selected = [industry for industry in industries if st.checkbox(industry, key=f"industry_{industry}")]
 
-    news_selected = [category for category in news_categories if st.checkbox(category, key=f"category_{category}")]
+    # Right Sidebar for News Categories
+    with st.sidebar.expander("News Categories", expanded=True):
+        news_selected = [category for category in news_categories if st.checkbox(category, key=f"category_{category}")]
 
     # Combine selected filters
     selected_options = company_selected + industry_selected + news_selected
     hypothesis_template = "This text is about {}."
-    
+
     # Filter Articles
     filtered_articles = []
     if selected_options:
@@ -213,7 +215,7 @@ if st.session_state["scraped_articles"]:
         filtered_articles = st.session_state["scraped_articles"]
 
     # Trending Organizations Section
-    st.sidebar.write("## Trending Organizations")
+    st.sidebar.write("### Trending Organizations")
     trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]
 
     # Create buttons for each trending organization
@@ -249,4 +251,3 @@ if st.session_state["scraped_articles"]:
                     <a href="{article['url']}" target="_blank">Read More</a>
                 </div>
             """, unsafe_allow_html=True)
-
