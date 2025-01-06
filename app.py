@@ -30,7 +30,7 @@ def highlight_org_entities(title):
     highlighted_title = title
     for org in orgs:
         # Highlight orgs in title with a blue color using inline style
-        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color:blue">{org}</span>')
     return highlighted_title
 
 
@@ -144,7 +144,7 @@ if st.session_state["scraped_articles"]:
     # Display filtered articles
     st.write("### Filtered Articles:")
     for article in filtered_articles:
-        st.markdown(f"**{article['title']}**")  # Highlighted titles
+        st.markdown(f"**{article['highlighted_title']}**")  # Highlighted titles
         st.write(f"[Read more]({article['url']})")
         st.write(f"{article['content'][:300]}...")  # Show first 300 characters
 
