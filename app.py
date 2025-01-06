@@ -34,8 +34,7 @@ def highlight_org_entities(title):
         highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
 
-# When displaying the article titles in Streamlit, use st.markdown with unsafe_allow_html=True
-st.markdown(f"**{article['title']}**", unsafe_allow_html=True)  # This allows HTML rendering
+
 
 
 
