@@ -27,7 +27,7 @@ def highlight_org_entities(title):
     orgs = extract_organizations(title)  # Get organizations from the title
     highlighted_title = title
     for org in orgs:
-        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: red;">{org}</span>')
     return highlighted_title
 
 # Load the entailment model for news category classification
