@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import os
 import streamlit as st
 from transformers import pipeline
 from collections import Counter
@@ -27,6 +28,7 @@ def highlight_org_entities(title):
     orgs = extract_organizations(title)  # Get organizations from the title
     highlighted_title = title
     for org in orgs:
+        # Highlight orgs in title with a blue color using inline style
         highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
 
@@ -81,11 +83,12 @@ def crawl_website(base_url, start_page, end_page, step):
                     content_div = article_soup.find('header', class_='inner-content')
                     content = "\n".join([p.get_text(strip=True) for p in content_div.find_all('p')]) if content_div else "No content found."
 
+                    # Extract organizations from both title and content, then update the counter
                     orgs_title = extract_organizations(title)
                     orgs_content = extract_organizations(content)
                     org_counter.update(orgs_title + orgs_content)
 
-                    highlighted_title = highlight_org_entities(title)
+                    highlighted_title = highlight_org_entities(title)  # Use the new approach for highlighting orgs
                     articles.append({'title': highlighted_title, 'url': article_url, 'content': content})
 
     except Exception as e:
@@ -96,13 +99,14 @@ def crawl_website(base_url, start_page, end_page, step):
 # CSS Styling for Streamlit App
 st.markdown("""
     <style>
-    /* General App Background Styling */
+    /* General styling */
     body {
-        background-color: #f5f5f5; /* Light gray background color */
+        background-color: #f9f9f9;
         font-family: 'Arial', sans-serif;
+        color: #333;
     }
 
-    /* Title Styling */
+    /* Title styling */
     .stTitle {
         color: #1a73e8;
         font-size: 2.5em;
@@ -110,80 +114,72 @@ st.markdown("""
         margin-bottom: 1em;
     }
 
-    /* Sidebar Styling */
-    .stSidebar {
-        background-color: #ffffff; /* White sidebar for contrast */
-        padding: 20px;
+    /* Sidebar styling */
+    .sidebar .sidebar-content {
+        background-color: #e9f5ff;
         border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
     }
 
-    /* Filter Section Styling */
-    .stCheckbox, .stButton {
-        margin: 5px 0;
+    .sidebar .sidebar-content h2 {
+        color: #1a73e8;
+        font-size: 1.5em;
     }
 
-    .stButton button {
+    /* Filter buttons */
+    button {
         background-color: #1a73e8;
         color: white;
         border-radius: 5px;
         border: none;
-        padding: 10px 15px;
+        padding: 10px 20px;
         font-size: 1em;
+        margin: 5px 0;
         cursor: pointer;
     }
 
-    .stButton button:hover {
+    button:hover {
         background-color: #135ba1;
     }
 
-    /* Article Styling */
+    /* Articles styling */
     .article {
         background-color: white;
-        padding: 20px;
-        margin-bottom: 15px;
+        border: 1px solid #ddd;
         border-radius: 10px;
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 1em;
     }
 
-    .article h3 {
-        font-size: 1.2em;
+    .article h2 {
+        font-size: 1.5em;
         color: #1a73e8;
-        margin-bottom: 10px;
     }
 
     .article p {
         font-size: 1em;
         color: #555;
     }
-
-    /* Trending Organization Styling */
-    .stSidebar button {
-        background-color: #f0f2f6;
-        color: black;
-        border-radius: 5px;
-        margin-bottom: 5px;
-    }
-    .stSidebar button:hover {
-        background-color: #e0e3ea;
-    }
     </style>
 """, unsafe_allow_html=True)
 
 # Streamlit UI
-# Streamlit UI
 st.title("Investment Intelligence System")
 
-# Initialize session state
+# Initialize session state to store articles and organization counts
 if "scraped_articles" not in st.session_state:
     st.session_state["scraped_articles"] = []
 if "org_counter" not in st.session_state:
     st.session_state["org_counter"] = Counter()
 
-# Scrape Articles Section
+# Initialize session state to track the view mode
+if "view_mode" not in st.session_state:
+    st.session_state["view_mode"] = "all"  # By default show all articles
+
+# Step 1: Scrape Articles
 base_url_input = st.text_input("Enter the website URL:")
 if st.button("Scrape Data"):
-    if not base_url_input.strip():
+    if base_url_input.strip() == "":
         st.error("Please enter a website URL!")
     else:
         with st.spinner("Scraping website..."):
@@ -195,71 +191,38 @@ if st.button("Scrape Data"):
         else:
             st.warning("No articles found.")
 
-# Filters Section
+# Step 2: Filter Articles
 if st.session_state["scraped_articles"]:
     st.write("## Filter Articles")
-
-    # Vertical Navigation Bar for Companies and Industries
-    with st.sidebar:
-        st.write("### Companies")
-        company_selected = [company for company in companies if st.checkbox(company, key=f"company_{company}")]
-
-        st.write("### Industries")
-        industry_selected = [industry for industry in industries if st.checkbox(industry, key=f"industry_{industry}")]
-
-    # Right Sidebar for News Categories
-    with st.sidebar.expander("News Categories", expanded=True):
-        news_selected = [category for category in news_categories if st.checkbox(category, key=f"category_{category}")]
-
-    # Combine selected filters
+    
+    # Sidebar filters
+    st.sidebar.subheader("Filter by Company")
+    company_selected = [company for company in companies if st.sidebar.checkbox(company, value=False)]
+    
+    st.sidebar.subheader("Filter by Industry")
+    industry_selected = [industry for industry in industries if st.sidebar.checkbox(industry, value=False)]
+    
+    st.sidebar.subheader("Filter by News Classification")
+    news_selected = [category for category in news_categories if st.sidebar.checkbox(category, value=False)]
+    
+    # Combine the selected categories
     selected_options = company_selected + industry_selected + news_selected
     hypothesis_template = "This text is about {}."
-
-    # Filter Articles
+    
     filtered_articles = []
     if selected_options:
         with st.spinner("Classifying articles..."):
             for article in st.session_state["scraped_articles"]:
                 detected_categories = classify_content(article['title'], selected_options, hypothesis_template)
-                if any(score > 0.5 for score in detected_categories.values()):
-                    filtered_articles.append(article)
+                for category, score in detected_categories.items():
+                    if score > 0.5:
+                        filtered_articles.append(article)
+                        break  # Stop checking further categories once a match is found
     else:
-        filtered_articles = st.session_state["scraped_articles"]
+        filtered_articles = st.session_state["scraped_articles"]  # Show all if no filter is selected
 
-    # Trending Organizations Section
-    st.sidebar.write("### Trending Organizations")
-    trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]
-
-    # Create buttons for each trending organization
-    for org in trending_orgs:
-        if st.sidebar.button(org):  # Button for each trending organization
-            filtered_by_org = []
-            seen_urls = set()
-            for article in st.session_state["scraped_articles"]:
-                if org in article['title'] or org in article['content']:
-                    if article['url'] not in seen_urls:
-                        filtered_by_org.append(article)
-                        seen_urls.add(article['url'])
-
-            # Display articles related to the selected organization
-            st.write(f"### Articles related to {org}:")
-            for article in filtered_by_org:
-                st.markdown(f"""
-                    <div class="article">
-                        <h3>{highlight_org_entities(article['title'])}</h3>
-                        <p>{article['content'][:300]}...</p>
-                        <a href="{article['url']}" target="_blank">Read More</a>
-                    </div>
-                """, unsafe_allow_html=True)
-
-    # Display Filtered Articles (if no trending org is clicked)
-    if not any(st.session_state.get(f"trending_{org}", False) for org in trending_orgs):
-        st.write("### Filtered Articles:")
-        for article in filtered_articles:
-            st.markdown(f"""
-                <div class="article">
-                    <h3>{highlight_org_entities(article['title'])}</h3>
-                    <p>{article['content'][:300]}...</p>
-                    <a href="{article['url']}" target="_blank">Read More</a>
-                </div>
-            """, unsafe_allow_html=True)
+    # Display filtered articles
+    st.write("### Filtered Articles:")
+    for article in filtered_articles:
+        # Display title with HTML tags rendered
+        st.markdown(f"<div class='article'><h2>{highlight_org_entities(article['title'])}</h2><p>[Read more]({article['url']})</p><p>{article['content'][:300]}...</p></div>", unsafe_allow_html=True)
