@@ -106,7 +106,6 @@ if "org_counter" not in st.session_state:
     st.session_state["org_counter"] = Counter()
 
 # Step 1: Scrape Articles
-# Step 1: Scrape Articles
 base_url_input = st.text_input("Enter the website URL:")
 if st.button("Scrape Data"):
     if base_url_input.strip() == "":
@@ -162,8 +161,17 @@ if st.session_state["scraped_articles"]:
     # Display trending organizations on the right side (sidebar)
     st.sidebar.write("## Trending Organizations")
     trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]  # Get the top 10 organizations without counts
+    
+    # Display each trending organization as a button
     for org in trending_orgs:
-        st.sidebar.write(org)
+        if st.sidebar.button(org):  # Create a button for each organization
+            # Filter articles that contain the clicked organization
+            filtered_by_org = [article for article in filtered_articles if org in article['title'] or org in article['content']]
+            st.write(f"### Articles related to {org}:")
+            for article in filtered_by_org:
+                st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+                st.write(f"[Read more]({article['url']})")
+                st.write(f"{article['content'][:300]}...")  # Show first 300 characters
 
 else:
     st.info("No articles scraped yet. Please scrape data first.")
