@@ -15,8 +15,8 @@ def query(payload):
     return response.json()
 
 # Function to extract organizations from NER output using the Hugging Face API
-def extract_organizations(title):
-    output = query({"inputs": title})
+def extract_organizations(text):
+    output = query({"inputs": text})
     if isinstance(output, list) and len(output) > 0:
         orgs = [item['word'] for item in output if item['entity_group'] == 'ORG']
         return orgs
@@ -83,9 +83,10 @@ def crawl_website(base_url, start_page, end_page, step):
                     content_div = article_soup.find('header', class_='inner-content')
                     content = "\n".join([p.get_text(strip=True) for p in content_div.find_all('p')]) if content_div else "No content found."
 
-                    # Extract organizations and update the counter
-                    orgs = extract_organizations(title)
-                    org_counter.update(orgs)
+                    # Extract organizations from both title and content, then update the counter
+                    orgs_title = extract_organizations(title)
+                    orgs_content = extract_organizations(content)
+                    org_counter.update(orgs_title + orgs_content)
 
                     highlighted_title = highlight_org_entities(title)  # Use the new approach for highlighting orgs
                     articles.append({'title': highlighted_title, 'url': article_url, 'content': content})
