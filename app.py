@@ -96,12 +96,13 @@ def crawl_website(base_url, start_page, end_page, step):
 # CSS Styling for Streamlit App
 st.markdown("""
     <style>
-    /* General styling */
+    /* General App Background Styling */
     body {
-        background-color: #f0f2f6;
+        background-color: #f5f5f5; /* Light gray background color */
         font-family: 'Arial', sans-serif;
     }
 
+    /* Title Styling */
     .stTitle {
         color: #1a73e8;
         font-size: 2.5em;
@@ -109,14 +110,15 @@ st.markdown("""
         margin-bottom: 1em;
     }
 
+    /* Sidebar Styling */
     .stSidebar {
-        background-color: #ffffff;
+        background-color: #ffffff; /* White sidebar for contrast */
         padding: 20px;
         border-radius: 10px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
-    /* Filter styling */
+    /* Filter Section Styling */
     .stCheckbox, .stButton {
         margin: 5px 0;
     }
@@ -135,7 +137,7 @@ st.markdown("""
         background-color: #135ba1;
     }
 
-    /* Article styling */
+    /* Article Styling */
     .article {
         background-color: white;
         padding: 20px;
@@ -155,6 +157,16 @@ st.markdown("""
         color: #555;
     }
 
+    /* Trending Organization Styling */
+    .stSidebar button {
+        background-color: #f0f2f6;
+        color: black;
+        border-radius: 5px;
+        margin-bottom: 5px;
+    }
+    .stSidebar button:hover {
+        background-color: #e0e3ea;
+    }
     </style>
 """, unsafe_allow_html=True)
 
