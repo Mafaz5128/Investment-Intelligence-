@@ -106,16 +106,20 @@ if "org_counter" not in st.session_state:
     st.session_state["org_counter"] = Counter()
 
 # Step 1: Scrape Articles
+# Step 1: Scrape Articles
 base_url_input = st.text_input("Enter the website URL:")
 if st.button("Scrape Data"):
     if base_url_input.strip() == "":
         st.error("Please enter a website URL!")
     else:
         with st.spinner("Scraping website..."):
-            articles, org_counter = crawl_website(base_url_input, start_page=30, end_page=150, step=30)
+            articles, org_counter = crawl_website(base_url_input, start_page=30, end_page=100, step=30)
             st.session_state["scraped_articles"] = articles
             st.session_state["org_counter"] = org_counter
-        st.success(f"Scraped {len(articles)} articles!") if articles else st.warning("No articles found.")
+        if articles:
+            st.success(f"Scraped {len(articles)} articles!")
+        else:
+            st.warning("No articles found.")
 
 # Step 2: Filter Articles
 if st.session_state["scraped_articles"]:
