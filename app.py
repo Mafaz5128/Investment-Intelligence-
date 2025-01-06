@@ -144,7 +144,7 @@ if st.session_state["scraped_articles"]:
     # Display filtered articles
     st.write("### Filtered Articles:")
     for article in filtered_articles:
-        st.markdown(f"**{article['highlighted_title']}**")  # Highlighted titles
+        st.markdown(f"**{article['title']}**")  # Highlighted titles
         st.write(f"[Read more]({article['url']})")
         st.write(f"{article['content'][:300]}...")  # Show first 300 characters
 
