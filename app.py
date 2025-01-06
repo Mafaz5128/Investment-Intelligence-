@@ -112,7 +112,7 @@ if st.button("Scrape Data"):
         st.error("Please enter a website URL!")
     else:
         with st.spinner("Scraping website..."):
-            articles, org_counter = crawl_website(base_url_input, start_page=30, end_page=100, step=30)
+            articles, org_counter = crawl_website(base_url_input, start_page=30, end_page=150, step=30)
             st.session_state["scraped_articles"] = articles
             st.session_state["org_counter"] = org_counter
         st.success(f"Scraped {len(articles)} articles!") if articles else st.warning("No articles found.")
