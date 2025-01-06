@@ -167,15 +167,24 @@ if st.session_state["scraped_articles"]:
     trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]  # Get the top 10 organizations without counts
     
     # Handle showing only related articles when a button is clicked
-    for org in trending_orgs:
-        if st.sidebar.button(org):  # Create a button for each organization
-            st.session_state["view_mode"] = org  # Change the view mode to show only this organization's articles
-            st.write(f"### Articles related to {org}:")
-            filtered_by_org = [article for article in filtered_articles if org in article['title'] or org in article['content']]
-            for article in filtered_by_org:
-                st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
-                st.write(f"[Read more]({article['url']})")
-                st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+    # Display each trending organization as a button
+for org in trending_orgs:
+    if st.sidebar.button(org):  # Create a button for each organization
+        # Filter articles that contain the clicked organization
+        filtered_by_org = []
+        seen_urls = set()  # To track unique articles by URL
+        for article in st.session_state["scraped_articles"]:
+            if org in article['title'] or org in article['content']:
+                if article['url'] not in seen_urls:
+                    filtered_by_org.append(article)
+                    seen_urls.add(article['url'])  # Add to the set to prevent duplicates
+
+        # Display articles related to the clicked organization
+        st.write(f"### Articles related to {org}:")
+        for article in filtered_by_org:
+            st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+            st.write(f"[Read more]({article['url']})")
+            st.write(f"{article['content'][:300]}...")  # Show first 300 characters
 
     # If no organization is selected, show all articles
     if st.session_state["view_mode"] == "all":
