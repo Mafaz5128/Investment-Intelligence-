@@ -146,6 +146,7 @@ st.markdown("""
 
     .article h3 {
         font-size: 1.2em;
+        color: 'blue';
         margin-bottom: 10px;
     }
 
