@@ -29,7 +29,7 @@ def highlight_org_entities(title):
     highlighted_title = title
     for org in orgs:
         # Highlight orgs in title with a blue color using inline style
-        highlighted_title = highlighted_title.replace(org, f'<span style="color: red;">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
 
 # Load the entailment model for news category classification
@@ -96,73 +96,6 @@ def crawl_website(base_url, start_page, end_page, step):
 
     return articles, org_counter
 
-# CSS Styling for Streamlit App
-st.markdown("""
-    <style>
-    /* General styling */
-    body {
-        background-color: #f9f9f9;
-        font-family: 'Arial', sans-serif;
-        color: #333;
-    }
-
-    /* Title styling */
-    .stTitle {
-        color: #1a73e8;
-        font-size: 2.5em;
-        text-align: center;
-        margin-bottom: 1em;
-    }
-
-    /* Sidebar styling */
-    .sidebar .sidebar-content {
-        background-color: #e9f5ff;
-        border-radius: 10px;
-        padding: 20px;
-    }
-
-    .sidebar .sidebar-content h2 {
-        color: #1a73e8;
-        font-size: 1.5em;
-    }
-
-    /* Filter buttons */
-    button {
-        background-color: #1a73e8;
-        color: white;
-        border-radius: 5px;
-        border: none;
-        padding: 10px 20px;
-        font-size: 1em;
-        margin: 5px 0;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background-color: #135ba1;
-    }
-
-    /* Articles styling */
-    .article {
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 1em;
-    }
-
-    .article h2 {
-        font-size: 1.5em;
-        color: #1a73e8;
-    }
-
-    .article p {
-        font-size: 1em;
-        color: #555;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
 # Streamlit UI
 st.title("Investment Intelligence System")
 
@@ -225,4 +158,51 @@ if st.session_state["scraped_articles"]:
     st.write("### Filtered Articles:")
     for article in filtered_articles:
         # Display title with HTML tags rendered
-        st.markdown(f"<div class='article'><h2>{highlight_org_entities(article['title'])}</h2><p>[Read more]({article['url']})</p><p>{article['content'][:300]}...</p></div>", unsafe_allow_html=True)
+        st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)  # Highlighted titles with HTML
+        st.write(f"[Read more]({article['url']})")
+        st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+    # Display trending organizations on the right side (sidebar)
+    st.sidebar.write("## Trending Organizations")
+    trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]  # Get the top 10 organizations without counts
+    
+    # Handle showing only related articles when a button is clicked
+    # Display each trending organization as a button
+for org in trending_orgs:
+    if st.sidebar.button(org):  # Create a button for each organization
+        # Filter articles that contain the clicked organization
+        filtered_by_org = []
+        seen_urls = set()  # To track unique articles by URL
+        for article in st.session_state["scraped_articles"]:
+            if org in article['title'] or org in article['content']:
+                if article['url'] not in seen_urls:
+                    filtered_by_org.append(article)
+                    seen_urls.add(article['url'])  # Add to the set to prevent duplicates
+
+        # Display articles related to the clicked organization
+        st.write(f"### Articles related to {org}:")
+        for article in filtered_by_org:
+            st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+            st.write(f"[Read more]({article['url']})")
+            st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+    # If no organization is selected, show all articles
+    if st.session_state["view_mode"] == "all":
+        st.write("### All Filtered Articles:")
+        for article in filtered_articles:
+            st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+            st.write(f"[Read more]({article['url']})")
+            st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+    elif st.session_state["view_mode"] != "all":
+        # Display the current organization related articles if in organization-specific view mode
+        if st.session_state["view_mode"]:
+            org = st.session_state["view_mode"]
+            filtered_by_org = [article for article in filtered_articles if org in article['title'] or org in article['content']]
+            for article in filtered_by_org:
+                st.markdown(f"**{highlight_org_entities(article['title'])}**", unsafe_allow_html=True)
+                st.write(f"[Read more]({article['url']})")
+                st.write(f"{article['content'][:300]}...")  # Show first 300 characters
+
+else:
+    st.info("No articles scraped yet. Please scrape data first.")
