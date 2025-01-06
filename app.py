@@ -29,7 +29,7 @@ def highlight_org_entities(title):
     highlighted_title = title
     for org in orgs:
         # Highlight orgs in title with a blue color using inline style
-        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: red;">{org}</span>')
     return highlighted_title
 
 # Load the entailment model for news category classification
