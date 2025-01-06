@@ -227,39 +227,45 @@ if st.session_state["scraped_articles"]:
         filtered_articles = st.session_state["scraped_articles"]
 
     # Trending Organizations Section
-    st.sidebar.write("### Trending Organizations")
-    trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]
+    # Trending Organizations Section
+st.sidebar.write("### Trending Organizations")
+trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]
 
-    # Create buttons for each trending organization
-    for org in trending_orgs:
-        if st.sidebar.button(org):  # Button for each trending organization
-            filtered_by_org = []
-            seen_urls = set()
-            for article in st.session_state["scraped_articles"]:
-                if org in article['title'] or org in article['content']:
-                    if article['url'] not in seen_urls:
-                        filtered_by_org.append(article)
-                        seen_urls.add(article['url'])
+# Create buttons for each trending organization
+for org in trending_orgs:
+    if st.sidebar.button(org):  # Button for each trending organization
+        filtered_by_org = []
+        seen_urls = set()
+        for article in st.session_state["scraped_articles"]:
+            # Check if the organization is in the title or content
+            if org in article['title'] or org in article['content']:
+                if article['url'] not in seen_urls:
+                    # Highlight the organization in the title
+                    article['title'] = highlight_org_entities(article['title'])
+                    filtered_by_org.append(article)
+                    seen_urls.add(article['url'])
 
-            # Display articles related to the selected organization
-            st.write(f"### Articles related to {org}:")
-            for article in filtered_by_org:
-                st.markdown(f"""
-                    <div class="article">
-                        <h3>{highlight_org_entities(article['title'])}</h3>
-                        <p>{article['content'][:300]}...</p>
-                        <a href="{article['url']}" target="_blank">Read More</a>
-                    </div>
-                """, unsafe_allow_html=True)
-
-    # Display Filtered Articles (if no trending org is clicked)
-    if not any(st.session_state.get(f"trending_{org}", False) for org in trending_orgs):
-        st.write("### Filtered Articles:")
-        for article in filtered_articles:
+        # Display articles related to the selected organization
+        st.write(f"### Articles related to **{org}**:")
+        for article in filtered_by_org:
             st.markdown(f"""
                 <div class="article">
-                    <h3>{highlight_org_entities(article['title'])}</h3>
+                    <h3>{article['title']}</h3>
                     <p>{article['content'][:300]}...</p>
                     <a href="{article['url']}" target="_blank">Read More</a>
                 </div>
             """, unsafe_allow_html=True)
+
+# Display Filtered Articles (if no trending org is clicked)
+if not any(st.session_state.get(f"trending_{org}", False) for org in trending_orgs):
+    st.write("### Filtered Articles:")
+    for article in filtered_articles:
+        # Highlight organizations in the title before rendering
+        article['title'] = highlight_org_entities(article['title'])
+        st.markdown(f"""
+            <div class="article">
+                <h3>{article['title']}</h3>
+                <p>{article['content'][:300]}...</p>
+                <a href="{article['url']}" target="_blank">Read More</a>
+            </div>
+        """, unsafe_allow_html=True)
