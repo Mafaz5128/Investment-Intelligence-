@@ -270,14 +270,14 @@ if st.session_state["scraped_articles"]:
             """, unsafe_allow_html=True)
             
     if "scraped_articles" in st.session_state and st.session_state["scraped_articles"]:
-    st.write("### Articles with Summarization")
-    for article in st.session_state["scraped_articles"]:
-        st.markdown(f"""
-            <div class="article">
-                <h3>{article['title']}</h3>
-                <p>{article['content'][:300]}...</p>
-                <a href="{article['url']}" target="_blank">Read More</a>
-            </div>
+        st.write("### Articles with Summarization")
+        for article in st.session_state["scraped_articles"]:
+            st.markdown(f"""
+                <div class="article">
+                    <h3>{article['title']}</h3>
+                    <p>{article['content'][:300]}...</p>
+                    <a href="{article['url']}" target="_blank">Read More</a>
+                </div>
         """, unsafe_allow_html=True)
 
         # Add a button for each article to summarize
