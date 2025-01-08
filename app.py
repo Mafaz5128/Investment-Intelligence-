@@ -106,27 +106,6 @@ st.markdown("""
         text-align: center;
         margin-bottom: 1em;
     }
-    .stSidebar {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-    .stCheckbox, .stButton {
-        margin: 5px 0;
-    }
-    .stButton button {
-        background-color: #1a73e8;
-        color: white;
-        border-radius: 5px;
-        border: none;
-        padding: 10px 15px;
-        font-size: 1em;
-        cursor: pointer;
-    }
-    .stButton button:hover {
-        background-color: #135ba1;
-    }
     .article {
         background-color: white;
         padding: 20px;
@@ -220,12 +199,15 @@ if st.session_state["scraped_articles"]:
 
             # Display articles related to the selected organization
             st.write(f"### Articles related to {org}:")
-            for article in filtered_by_org:
+            for i, article in enumerate(filtered_by_org):
                 st.markdown(f"""
                     <div class="article">
                         <h3>{highlight_org_entities(article['title'])}</h3>
                         <p>{article['content'][:150]}...</p>
                         <a href="{article['url']}" target="_blank">Read More</a>
-                        <button onclick="alert('Summary: {summarize_article(article['content'])}')">Summary</button>
                     </div>
                 """, unsafe_allow_html=True)
+
+                if st.button(f"Show Summary for Article {i+1}", key=f"summary_button_{i}"):
+                    summary = summarize_article(article['content'])
+                    st.write(f"**Summary:** {summary}")
