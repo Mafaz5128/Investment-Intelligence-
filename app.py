@@ -4,13 +4,11 @@ import streamlit as st
 from transformers import pipeline
 from collections import Counter
 
-# Hugging Face API URL and headers for NER and summarization models
+# Hugging Face API URL and headers for NER model
 API_URL_NER = "https://api-inference.huggingface.co/models/FacebookAI/xlm-roberta-large-finetuned-conll03-english"
-API_URL_SUMMARY = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
 headers = {"Authorization": "Bearer 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"}
 
-# Load Hugging Face models
-summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+# Load Hugging Face NER model
 entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
 
 # Function to query the Hugging Face NER model
@@ -30,15 +28,6 @@ def extract_organizations(text):
         orgs = [item['word'] for item in output if item['entity_group'] == 'ORG']
         return orgs
     return []
-
-# Function to summarize article content
-def summarize_article(content):
-    try:
-        summary = summarizer(content, max_length=200, min_length=50, do_sample=False)
-        return summary[0]['summary_text']
-    except Exception as e:
-        print(f"Error summarizing content: {e}")
-        return "Summary not available."
 
 # Highlight organizations in the title with red color
 def highlight_org_entities(title):
@@ -94,34 +83,34 @@ def crawl_website(base_url, start_page, end_page, step):
     return articles, org_counter
 
 # CSS Styling for Streamlit App
-st.markdown("""
-    <style>
-    body {
-        background-color: #f0f2f6;
-        font-family: 'Arial', sans-serif;
-    }
-    .stTitle {
-        color: #1a73e8;
-        font-size: 2.5em;
-        text-align: center;
-        margin-bottom: 1em;
-    }
-    .article {
-        background-color: white;
-        padding: 20px;
-        margin-bottom: 15px;
-        border-radius: 10px;
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .article h3 {
-        font-size: 1.2em;
-        color: 'blue';
-        margin-bottom: 10px;
-    }
-    .article p {
-        font-size: 1em;
-        color: #555;
-    }
+st.markdown(""" 
+    <style> 
+    body { 
+        background-color: #f0f2f6; 
+        font-family: 'Arial', sans-serif; 
+    } 
+    .stTitle { 
+        color: #1a73e8; 
+        font-size: 2.5em; 
+        text-align: center; 
+        margin-bottom: 1em; 
+    } 
+    .article { 
+        background-color: white; 
+        padding: 20px; 
+        margin-bottom: 15px; 
+        border-radius: 10px; 
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
+    } 
+    .article h3 { 
+        font-size: 1.2em; 
+        color: 'blue'; 
+        margin-bottom: 10px; 
+    } 
+    .article p { 
+        font-size: 1em; 
+        color: #555; 
+    } 
     </style>
 """, unsafe_allow_html=True)
 
@@ -207,7 +196,3 @@ if st.session_state["scraped_articles"]:
                         <a href="{article['url']}" target="_blank">Read More</a>
                     </div>
                 """, unsafe_allow_html=True)
-
-                if st.button(f"Show Summary for Article {i+1}", key=f"summary_button_{i}"):
-                    summary = summarize_article(article['content'])
-                    st.write(f"**Summary:** {summary}")
