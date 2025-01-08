@@ -27,7 +27,7 @@ def highlight_org_entities(title):
     orgs = extract_organizations(title)  # Get organizations from the title
     highlighted_title = title
     for org in orgs:
-        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: red;">{org}</span>')
     return highlighted_title
 
 # Load the entailment model for news category classification
@@ -227,7 +227,7 @@ if st.session_state["scraped_articles"]:
         filtered_articles = st.session_state["scraped_articles"]
 
     # Trending Organizations Section
-    st.sidebar.write("### Trending Organizations")
+    st.sidebar.write("### Trending Keywords")
     trending_orgs = [org for org, _ in st.session_state["org_counter"].most_common(10)]
 
     # Create buttons for each trending organization
