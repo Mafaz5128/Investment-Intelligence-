@@ -5,6 +5,7 @@ from transformers import pipeline
 from collections import Counter
 
 # Hugging Face API URL and headers for NER
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 API_URL = "https://api-inference.huggingface.co/models/FacebookAI/xlm-roberta-large-finetuned-conll03-english"
 headers = {"Authorization": "Bearer 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"}
 
@@ -13,6 +14,10 @@ def query(payload):
     response = requests.post(API_URL, headers=headers, json=payload)
     return response.json()
 
+def summarize_text(content, max_length=130, min_length=30):
+    summary = summarizer(content, max_length=max_length, min_length=min_length, do_sample=False)
+    return summary[0]['summary_text']
+    
 # Function to extract organizations from NER output using the Hugging Face API
 def extract_organizations(text):
     output = query({"inputs": text})
@@ -263,3 +268,20 @@ if st.session_state["scraped_articles"]:
                     <a href="{article['url']}" target="_blank">Read More</a>
                 </div>
             """, unsafe_allow_html=True)
+            
+    if "scraped_articles" in st.session_state and st.session_state["scraped_articles"]:
+    st.write("### Articles with Summarization")
+    for article in st.session_state["scraped_articles"]:
+        st.markdown(f"""
+            <div class="article">
+                <h3>{article['title']}</h3>
+                <p>{article['content'][:300]}...</p>
+                <a href="{article['url']}" target="_blank">Read More</a>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # Add a button for each article to summarize
+        if st.button(f"Summarize '{article['title'][:30]}...'"):
+            with st.spinner("Generating summary..."):
+                summary = summarize_text(article['content'])
+                st.write(f"**Summary:** {summary}")
