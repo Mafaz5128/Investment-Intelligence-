@@ -4,51 +4,62 @@ import streamlit as st
 from transformers import pipeline
 from collections import Counter
 
-# Hugging Face API URL and headers for NER model
-API_URL_NER = "https://api-inference.huggingface.co/models/FacebookAI/xlm-roberta-large-finetuned-conll03-english"
-headers = {"Authorization": "Bearer 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"}
+# Hugging Face API URL and headers for NER
+API_URL = "https://api-inference.huggingface.co/models/FacebookAI/xlm-roberta-large-finetuned-conll03-english"
+headers = {"Authorization": "Bearer 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"}
 
-# Load Hugging Face NER model
-entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
+# Function to query the Hugging Face model for NER
+def query(payload):
+    response = requests.post(API_URL, headers=headers, json=payload)
+    return response.json()
 
-# Function to query the Hugging Face NER model
-def query(payload, api_url):
-    try:
-        response = requests.post(api_url, headers=headers, json=payload)
-        response.raise_for_status()  # This will raise an exception for 4xx/5xx status codes
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error during API request: {e}")
-        return None
-
-# Extract organizations using NER model
+# Function to extract organizations from NER output using the Hugging Face API
 def extract_organizations(text):
-    output = query({"inputs": text}, API_URL_NER)
-    if output and isinstance(output, list):
+    output = query({"inputs": text})
+    if isinstance(output, list) and len(output) > 0:
         orgs = [item['word'] for item in output if item['entity_group'] == 'ORG']
         return orgs
-    return []
+    else:
+        return []
 
-# Highlight organizations in the title with red color
+# Function to highlight organizations in the title with blue color
 def highlight_org_entities(title):
-    orgs = extract_organizations(title)
+    orgs = extract_organizations(title)  # Get organizations from the title
     highlighted_title = title
     for org in orgs:
-        highlighted_title = highlighted_title.replace(org, f'<span style="color: red;">{org}</span>')
+        highlighted_title = highlighted_title.replace(org, f'<span style="color: blue;">{org}</span>')
     return highlighted_title
 
-# Classify content into categories based on selected options
+# Load the entailment model for news category classification
+entailment_model = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
+
+# List of companies, industries, and news categories for filtering
+companies = ['Hemas', 'John Keells', 'Dialog', 'CSE']
+industries = [
+    "Energy", "Materials", "Industrials", "Consumer Discretionary",
+    "Consumer Staples", "Health Care", "Financials", "Information Technology",
+    "Communication Services", "Utilities", "Real Estate"
+]
+news_categories = [
+    "Politics", "Business", "Technology", "Health", "Entertainment", "Sports"
+]
+
+# Function to classify content based on selected categories (using entailment model)
 def classify_content(sentence, categories, hypothesis_template):
-    result = entailment_model(sequences=sentence, candidate_labels=categories, hypothesis_template=hypothesis_template)
+    result = entailment_model(
+        sequences=sentence,
+        candidate_labels=categories,
+        hypothesis_template=hypothesis_template
+    )
     return {label: score for label, score in zip(result["labels"], result["scores"])}
 
 # Function to scrape articles from the website
 def crawl_website(base_url, start_page, end_page, step):
     articles = []
-    org_counter = Counter()
+    org_counter = Counter()  # Track frequency of organizations
     try:
         for page_num in range(start_page, end_page, step):
-            page_url = f"{base_url}/44/{page_num}"
+            page_url = f"{base_url}/{page_num}"
             response = requests.get(page_url)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -83,37 +94,83 @@ def crawl_website(base_url, start_page, end_page, step):
     return articles, org_counter
 
 # CSS Styling for Streamlit App
-st.markdown(""" 
-    <style> 
-    body { 
-        background-color: #f0f2f6; 
-        font-family: 'Arial', sans-serif; 
-    } 
-    .stTitle { 
-        color: #1a73e8; 
-        font-size: 2.5em; 
-        text-align: center; 
-        margin-bottom: 1em; 
-    } 
-    .article { 
-        background-color: white; 
-        padding: 20px; 
-        margin-bottom: 15px; 
-        border-radius: 10px; 
-        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); 
-    } 
-    .article h3 { 
-        font-size: 1.2em; 
-        color: 'blue'; 
-        margin-bottom: 10px; 
-    } 
-    .article p { 
-        font-size: 1em; 
-        color: #555; 
-    } 
+st.markdown("""
+    <style>
+    /* General App Background Styling */
+    body {
+        background-color: #f5f5f5; /* Light gray background color */
+        font-family: 'Arial', sans-serif;
+    }
+
+    /* Title Styling */
+    .stTitle {
+        color: #1a73e8;
+        font-size: 2.5em;
+        text-align: center;
+        margin-bottom: 1em;
+    }
+
+    /* Sidebar Styling */
+    .stSidebar {
+        background-color: #ffffff; /* White sidebar for contrast */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Filter Section Styling */
+    .stCheckbox, .stButton {
+        margin: 5px 0;
+    }
+
+    .stButton button {
+        background-color: #1a73e8;
+        color: white;
+        border-radius: 5px;
+        border: none;
+        padding: 10px 15px;
+        font-size: 1em;
+        cursor: pointer;
+    }
+
+    .stButton button:hover {
+        background-color: #135ba1;
+    }
+
+    /* Article Styling */
+    .article {
+        background-color: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .article h3 {
+        font-size: 1.2em;
+        color: #1a73e8;
+        margin-bottom: 10px;
+    }
+
+    .article p {
+        font-size: 1em;
+        color: #555;
+    }
+
+    /* Trending Organization Styling */
+    .stSidebar button {
+        background-color: #f0f2f6;
+        color: black;
+        border-radius: 5px;
+        margin-bottom: 5px;
+    }
+    .stSidebar button:hover {
+        background-color: #e0e3ea;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+# Streamlit UI
 # Streamlit UI
 st.title("Investment Intelligence System")
 
@@ -145,16 +202,14 @@ if st.session_state["scraped_articles"]:
     # Vertical Navigation Bar for Companies and Industries
     with st.sidebar:
         st.write("### Companies")
-        company_selected = [company for company in ['Hemas', 'John Keells', 'Dialog', 'CSE'] if st.checkbox(company, key=f"company_{company}")]
+        company_selected = [company for company in companies if st.checkbox(company, key=f"company_{company}")]
 
         st.write("### Industries")
-        industry_selected = [industry for industry in [
-            "Energy", "Materials", "Industrials", "Consumer Discretionary", "Consumer Staples", "Health Care", "Financials",
-            "Information Technology", "Communication Services", "Utilities", "Real Estate"] if st.checkbox(industry, key=f"industry_{industry}")]
+        industry_selected = [industry for industry in industries if st.checkbox(industry, key=f"industry_{industry}")]
 
     # Right Sidebar for News Categories
     with st.sidebar.expander("News Categories", expanded=True):
-        news_selected = [category for category in ["Politics", "Business", "Technology", "Health", "Entertainment", "Sports"] if st.checkbox(category, key=f"category_{category}")]
+        news_selected = [category for category in news_categories if st.checkbox(category, key=f"category_{category}")]
 
     # Combine selected filters
     selected_options = company_selected + industry_selected + news_selected
@@ -188,11 +243,23 @@ if st.session_state["scraped_articles"]:
 
             # Display articles related to the selected organization
             st.write(f"### Articles related to {org}:")
-            for i, article in enumerate(filtered_by_org):
+            for article in filtered_by_org:
                 st.markdown(f"""
                     <div class="article">
                         <h3>{highlight_org_entities(article['title'])}</h3>
-                        <p>{article['content'][:150]}...</p>
+                        <p>{article['content'][:300]}...</p>
                         <a href="{article['url']}" target="_blank">Read More</a>
                     </div>
                 """, unsafe_allow_html=True)
+
+    # Display Filtered Articles (if no trending org is clicked)
+    if not any(st.session_state.get(f"trending_{org}", False) for org in trending_orgs):
+        st.write("### Filtered Articles:")
+        for article in filtered_articles:
+            st.markdown(f"""
+                <div class="article">
+                    <h3>{highlight_org_entities(article['title'])}</h3>
+                    <p>{article['content'][:300]}...</p>
+                    <a href="{article['url']}" target="_blank">Read More</a>
+                </div>
+            """, unsafe_allow_html=True)
