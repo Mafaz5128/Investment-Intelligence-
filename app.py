@@ -7,7 +7,7 @@ from collections import Counter
 # Hugging Face API URL and headers for NER
 summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
 API_URL = "https://api-inference.huggingface.co/models/FacebookAI/xlm-roberta-large-finetuned-conll03-english"
-headers = {"Authorization": "Bearer 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"}
+headers = {"Authorization": "Bearer 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"}
 
 # Function to query the Hugging Face model for NER
 def query(payload):
