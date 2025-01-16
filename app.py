@@ -186,7 +186,7 @@ if "org_counter" not in st.session_state:
     st.session_state["org_counter"] = Counter()
 
 # Scrape Articles Section
-base_url_input = "https://www.ft.lk/news/44"
+base_url_input = "https://www.ft.lk/news"
 if st.button("FT.LK"):
     if not base_url_input.strip():
         st.error("Please enter a website URL!")
